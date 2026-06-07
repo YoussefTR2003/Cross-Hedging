@@ -11,6 +11,9 @@ from scipy.stats import norm
 from scipy.optimize import minimize
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend required for Streamlit
+import matplotlib.pyplot as plt
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -365,7 +368,7 @@ def spread_proxy(hi, lo):
 
 
 class LiquidityAdjustedBS:
-    """Black-Scholes with liquidity premium: r_adj = r_f + κ·amihud^α"""
+    """Black-Scholes with liquidity premium: r_adj = rf + κ·amihud^α"""
 
     def __init__(self, S, K, T, sigma, amihud, rf=0.053,
                  kappa=0.02, alpha=0.5, option_type="call"):
@@ -446,14 +449,17 @@ def compute_illiquidity(data, tickers):
         if t not in data["close"].columns:
             continue
         r  = data["returns"][t].dropna()
-        p  = data["close"][t].reindex(r.index)
-        v  = data["volume"][t].reindex(r.index) if t in data["volume"].columns else pd.Series(np.nan, index=r.index)
-        h  = data["high"][t].reindex(r.index)   if t in data["high"].columns   else p
-        lo = data["low"][t].reindex(r.index)    if t in data["low"].columns    else p
+        p  = data["close"][t].reindex(r.index).dropna()
+        if len(p) < 2 or len(r) < 2:
+            continue
+        v  = data["volume"][t].reindex(p.index) if t in data["volume"].columns else pd.Series(np.nan, index=p.index)
+        h  = data["high"][t].reindex(p.index)   if t in data["high"].columns   else p
+        lo = data["low"][t].reindex(p.index)    if t in data["low"].columns    else p
+        r  = r.reindex(p.index)
         rows.append(dict(Ticker=t, Amihud=amihud_ratio(r, p, v),
                          SpreadProxy=spread_proxy(h, lo),
                          AnnVol=r.std() * np.sqrt(252) * 100,
-                         AvgPrice=p.mean(), LastPrice=p.iloc[-1]))
+                         AvgPrice=float(p.mean()), LastPrice=float(p.iloc[-1])))
     return pd.DataFrame(rows).set_index("Ticker") if rows else pd.DataFrame()
 
 
@@ -578,7 +584,7 @@ with st.sidebar:
     T = T_months / 12
 
     st.markdown("### Model Parameters")
-    rf    = st.number_input("r_f (risk-free)", 0.0, 0.15, 0.053, 0.001, format="%.3f")
+    rf    = st.number_input("RF (risk-free)", 0.0, 0.15, 0.053, 0.001, format="%.3f")
     kappa = st.number_input("κ (illiq. sensitivity)", 0.0, 0.20, 0.02, 0.001, format="%.3f")
     alpha = st.slider("α (Amihud exponent)", 0.1, 2.0, 0.5, 0.05)
 
