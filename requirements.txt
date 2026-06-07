@@ -4,3 +4,4 @@ numpy>=1.26
 pandas>=2.0
 scipy>=1.13
 plotly>=5.22
+matplotlib>=3.8
