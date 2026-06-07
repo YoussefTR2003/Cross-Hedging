@@ -51,6 +51,36 @@ CLASS_COLORS = {
     "Hedge":           "#8b949e",
 }
 
+TICKER_NAMES = {
+    # Equity Small-Cap
+    "IWM":  "iShares Russell 2000 ETF",
+    "VIOV": "Vanguard S&P Small-Cap 600 Value ETF",
+    "SLYV": "SPDR S&P 600 Small Cap Value ETF",
+    # Real Estate
+    "VNQ":  "Vanguard Real Estate ETF",
+    "IYR":  "iShares US Real Estate ETF",
+    "REM":  "iShares Mortgage Real Estate ETF",
+    # EM Debt
+    "EMB":  "iShares JP Morgan USD EM Bond ETF",
+    "EMLC": "VanEck Local Currency EM Bond ETF",
+    "VWOB": "Vanguard Emerging Markets Govt Bond ETF",
+    # Commodities
+    "SLV":  "iShares Silver Trust",
+    "PDBC": "Invesco Optimum Yield Diversified Commodity ETF",
+    "DJP":  "iPath Bloomberg Commodity Index ETN",
+    # High Yield Credit
+    "HYG":  "iShares iBoxx $ High Yield Corporate Bond ETF",
+    "JNK":  "SPDR Bloomberg High Yield Bond ETF",
+    "USHY": "iShares Broad USD High Yield Corporate Bond ETF",
+    # Hedge instruments
+    "SPY":  "SPDR S&P 500 ETF Trust",
+    "QQQ":  "Invesco Nasdaq-100 ETF",
+    "TLT":  "iShares 20+ Year Treasury Bond ETF",
+    "GLD":  "SPDR Gold Shares ETF",
+    "UUP":  "Invesco DB US Dollar Index Bullish Fund",
+    "LQD":  "iShares iBoxx $ Investment Grade Corporate Bond ETF",
+}
+
 # ── Plotly base template ──────────────────────────────────────────────────────
 def chart_layout(**kwargs):
     """Return a consistent dark Plotly layout dict."""
@@ -563,14 +593,23 @@ with st.sidebar:
     illiq_classes = {}
     with st.expander("Edit asset classes"):
         for cls, default in default_illiquid.items():
-            color_dot = CLASS_COLORS.get(cls, MUTED)
-            raw = st.text_input(
-                f"● {cls}",
-                value=default, key=f"cls_{cls}",
-            )
+            raw = st.text_input(f"● {cls}", value=default, key=f"cls_{cls}")
             tickers = [t.strip().upper() for t in raw.split(",") if t.strip()]
             if tickers:
                 illiq_classes[cls] = tickers
+                names_preview = "  ·  ".join(
+                    f"`{t}` {TICKER_NAMES.get(t, '')}" for t in tickers
+                )
+                st.markdown(
+                    f"<div style='font-size:0.68rem; color:{MUTED}; margin:-8px 0 8px 8px; line-height:1.6;'>"
+                    + "  ·  ".join(
+                        f"<span style='color:{TEXT}'>{t}</span> "
+                        f"<span style='color:{MUTED}'>{TICKER_NAMES.get(t, '')}</span>"
+                        for t in tickers
+                    )
+                    + "</div>",
+                    unsafe_allow_html=True,
+                )
 
     st.markdown("### Hedge Instruments")
     hedge_raw = st.text_input("Tickers", value="SPY, QQQ, TLT, GLD, UUP, LQD",
@@ -909,6 +948,11 @@ with tab1:
     section("📋", "Illiquidity Table")
     disp = illiq_df.copy()
     disp.columns = ["Amihud ×1e-6", "Spread Proxy (%)", "Ann. Vol (%)", "Avg Price", "Last Price"]
+    disp.insert(0, "Full Name", [TICKER_NAMES.get(t, "—") for t in disp.index])
+    disp.insert(1, "Class", [
+        next((cls for cls, tks in illiq_classes.items() if t in tks), "—")
+        for t in disp.index
+    ])
     st.dataframe(
         disp.style
             .format("{:.4f}", subset=["Amihud ×1e-6"])
