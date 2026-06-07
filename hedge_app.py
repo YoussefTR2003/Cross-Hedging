@@ -554,14 +554,14 @@ def perf_stats(r, rf_daily=0.053 / 252):
     excess = r - rf_daily
     cum = (1 + r).cumprod()
     peak = cum.cummax()
-    return dict(
-        Sharpe=round(excess.mean() / excess.std() * np.sqrt(252), 3),
-        Vol_ann=round(r.std() * np.sqrt(252) * 100, 3),
-        MaxDD=round(((cum - peak) / peak).min() * 100, 3),
-        VaR95=round(np.percentile(r, 5) * 100, 3),
-        Skew=round(float(r.skew()), 3),
-        Kurt=round(float(r.kurt()), 3),
-    )
+    return {
+        "Sharpe":      round(excess.mean() / excess.std() * np.sqrt(252), 3),
+        "Vol ann. (%)": round(r.std() * np.sqrt(252) * 100, 3),
+        "Max DD (%)":  round(((cum - peak) / peak).min() * 100, 3),
+        "VaR 95% (%)": round(float(np.percentile(r.dropna(), 5)) * 100, 3),
+        "Skewness":    round(float(r.skew()), 3),
+        "Kurtosis":    round(float(r.kurt()), 3),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1139,8 +1139,7 @@ with tab4:
         sh = perf_stats(pnl_hedged)
 
         # Stats grid
-        col_labels = ["Sharpe", "Vol ann. (%)", "Max DD (%)", "VaR 95% (%)", "Skewness", "Kurtosis"]
-        stats_df = pd.DataFrame([sr, sh], index=["Unhedged", "Hedged"], columns=col_labels)
+        stats_df = pd.DataFrame([sr, sh], index=["Unhedged", "Hedged"])
         st.dataframe(
             stats_df.style
                 .format("{:.3f}")
