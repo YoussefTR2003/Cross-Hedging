@@ -133,8 +133,10 @@ html, body, [class*="css"] {{
     font-family: 'Inter', 'Segoe UI', sans-serif;
 }}
 
-/* ── Hide default header/footer ── */
-#MainMenu, footer, header {{ visibility: hidden; }}
+/* ── Hide default header/footer but keep sidebar toggle ── */
+#MainMenu, footer {{ visibility: hidden; }}
+[data-testid="stHeader"] {{ visibility: hidden; }}
+[data-testid="collapsedControl"] {{ visibility: visible !important; }}
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
